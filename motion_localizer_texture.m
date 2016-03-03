@@ -20,6 +20,10 @@ Params.General.SFRange                 = [0 1];   %cycles/deg, cut for spatial f
 
 
 %% ---------All parameters should be here---------------
+% General experiment parameters
+Params.General.Experiment               = 'Motion_Localizer_Texture'; % name of the experiment.
+
+
 % KEY Monitor Parameters
 Params.General.Resolution              = [1400 1050]; %width, height
 Params.General.MonitorWidth            = 42.8;        %cm
@@ -64,7 +68,7 @@ try
         Screen('LoadNormalizedGammaTable',screenNumber,screen_clut);
     end
     Screen('FillRect',w, Params.General.Background);Screen('Flip', w);
-    Screen('TextSize',w,30);Screen('TextFont',w,'Charcoal');
+    Screen('TextSize',w,30);Screen('TextFont',w,'Arial');
     sr_hor = round(screen_rect(3)/2); sr_ver = round(screen_rect(4)/2);
     
     
@@ -145,8 +149,8 @@ try
     tic; trial = 1;
         
     Screen('FillRect',w, Params.General.Background);
-    %Screen('DrawText',w,'Press any key to start the experiment',sr_hor-300,sr_ver-80,Params.General.Character_color);
-    %Screen('DrawText',w,'Please keep your fixation on center spot throught the experiment',sr_hor-300,sr_ver-40,Params.General.Character_color);Screen('Flip',w);
+    Screen('DrawText',w,'Press any key to start the experiment',sr_hor-300,sr_ver-80,Params.General.Character_color);
+    Screen('DrawText',w,'Please keep your fixation on center spot throught the experiment',sr_hor-300,sr_ver-40,Params.General.Character_color);Screen('Flip',w);
     KbWait(-1);
     Screen('Flip', w);
     FlushEvents('keyDown');
@@ -168,38 +172,27 @@ try
     Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
     vbl=Screen('Flip', w);
     
-    % first blank
+    % first blank at begining
     Screen('FillRect',w, Params.General.Background);
     Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-    vbl=Screen('Flip', w,vbl+Params.General.Dur_blank-0.6295); % 0.6295 is estimated time for predelay below
+    vbl_blank=Screen('Flip', w,vbl+Params.General.Dur_blank); % 0.6295 is estimated time for preDelay below
+    
     
     %% Main loop    
     for trial=1:Params.General.nTrials
            
         %% play the movie to the left
-        %short fixation oval
-        Screen('FillRect',w, Params.General.Background);
-        Screen('Flip', w);
-        mm = 31;
-        for i=0:4
-            nn = mm-i*4;
-            Screen('FrameOval', w,Params.General.Character_color,[sr_hor-nn, sr_ver-nn, sr_hor+nn, sr_ver+nn],2,2)
-            Screen('Flip', w);
-            WaitSecs(0.05);
-        end
-        Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-        Screen('Flip', w);
-        WaitSecs(0.2);
-        % play the movie now
         priorityLevel=MaxPriority(w);Priority(priorityLevel);
         trialStartTime = GetSecs;
-        predelay = trialStartTime-vbl
+        preDelay =  trialStartTime-vbl_blank
         prt.data(trial,4) = (GetSecs-startTime)*1000;%starting time;
-        if trial == 1
-           fprintf('This blank lasts %.10f\n', trialStartTime-vbl); 
+        
+        if trial ==1
+            fprintf('This blank lasts %.10f\n', GetSecs-vbl); 
         else
-           fprintf('This blank lasts %.10f\n', startTime-vbl); 
+            fprintf('This blank lasts %.10f\n', GetSecs-trialEndTime); 
         end
+   
         
         for frame = 1:Params.General.MvLength_stimuli
             offset=(frame-1)*Params.General.PixStep;  %how many pixel moved in this frame
@@ -220,25 +213,21 @@ try
         trialEndTime = GetSecs;
 
         prt.data(trial,5)=(trialEndTime-startTime)*1000;%end time;
-        t =  trialEndTime - trialStartTime
-        fprintf('This trial lasts %.10f seconds \n',t);
         
-        if trial>1
+        fprintf('This trial lasts %.10f seconds \n',trialEndTime - trialStartTime);
+
             trial
 %            t = (prt.data(trial,4) -  prt.data(trial-1,5))/1000 
-        end
+
 
         % blank after left motion    
         Screen('FillRect',w, Params.General.Background);
         Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-        Screen('Flip',w);
+        blankStartTime=Screen('Flip',w);
         Priority(0);
         Screen('FillRect',w, Params.General.Background);
-        Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-        postDelay=GetSecs-trialEndTime;        
-        vbl_blank=Screen('Flip', w, trialEndTime+Params.General.Dur_blank-predelay); % give some room for predelay below
-
-        
+        Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);        
+        vbl_blank=Screen('Flip', w, trialEndTime+Params.General.Dur_blank-preDelay); % give some room for preDelay below
 
         FlushEvents('keyDown');
         % Close movies
@@ -247,7 +236,7 @@ try
     end
     ShowCursor;
     TotalTime = GetSecs-startTime;
-    fprinf('The whole run took %.10f\n', TotalTime)
+    fprintf('The whole run took %.10f\n', TotalTime)
     
     
     screen_clut = [0:255; 0:255; 0:255]'./(255);
@@ -257,61 +246,97 @@ try
     Screen('Preference', 'SuppressAllWarnings', oldSupressAllWarnings);
     ListenChar(1);
        
-    if savefile
-        save(filename);
-        %compute prt for four conditions
-        for i =1:prt.NrOfConditions
-            prt.Condition{i}.ntpts = 4;% 4 trials/condition
-            prt.Condition{i}.estart = prt.data(prt.data(:,3)==i,4);
-            prt.Condition{i}.eend = prt.data(prt.data(:,3)==i,5);
-            prt.Condition{i}.color=prt.colors(i,:);
-        end
-        %add gaze condition
-        if ~DEBUG && Params.General.EyeTrack
-            prt.NrOfConditions=prt.NrOfConditions+1;
-            prt.Condition{prt.NrOfConditions}.name = 'gaze';
-            prt.Condition{prt.NrOfConditions}.ntpts = size(gaze_failed,1);
-            if prt.Condition{prt.NrOfConditions}.ntpts==0
-                prt.Condition{prt.NrOfConditions}.estart = 0;
-                prt.Condition{prt.NrOfConditions}.eend = 0;
-            else
-                prt.Condition{prt.NrOfConditions}.estart = gaze_failed(:,1);
-                prt.Condition{prt.NrOfConditions}.eend = gaze_failed(:,2);
-            end
-            prt.Condition{prt.NrOfConditions}.color=prt.colors(end,:);
-        end
-        bv_prt_write (prt);
-        
-        %compute prt for all individual trials
-        for i = 1: prtSingleTrial.NrOfConditions
-            prtSingleTrial.Condition{i}.ntpts=1; % for signal trial
-            prtSingleTrial.Condition{i}.color=prtSingleTrial.colors(i,:);
-            condition_temp=fix((i-1)/4)+1;
-            rem_temp = rem(i-1,4)+1;
-            estart_temp = prt.data(prt.data(:,3)==condition_temp,4);
-            eend_temp   = prt.data(prt.data(:,3)==condition_temp,5);
-            prtSingleTrial.Condition{i}.estart =estart_temp(rem_temp);
-            prtSingleTrial.Condition{i}.eend = eend_temp(rem_temp);
-            
-        end
-        prtSingleTrial.data=prt.data;
-        if ~DEBUG && Params.General.EyeTrack
-            %add gaze condition
-            prtSingleTrial.NrOfConditions=prtSingleTrial.NrOfConditions+1;
-            prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.name = 'gaze';
-            prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.ntpts = size(gaze_failed,1);
-            if prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.ntpts == 0
-                  prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.estart = 0;
-                  prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.eend = 0;
-            else
-                  prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.estart = gaze_failed(:,1);
-                  prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.eend = gaze_failed(:,2); 
-            end
-            prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.color=prtSingleTrial.colors(end,:);
-        end
-        bv_prt_write (prtSingleTrial);
-        save(filename);
+    save(filename);
+    
+    %% set up prt
+    % some info for prt file
+    % for motion localizer prt. We use this to define motion selective
+    % voxels
+    prt.name = [Params.General.Experiment '_localizerPRT'];
+    prt.NrofCodnitions                      = 2;%left/right/blank;
+    prt.Condition{:}.ntpts                  = 8;
+    prt.Condition{1}.name                   ='Left';
+    prt.Condition{2}.name                   ='Right';
+    colors = 255*jet;close(gcf);
+    prt.colors = round(linspace(1,length(colors),prt.NrOfConditions));
+    prt.colors = round(colors(prt.colors,:));
+    
+    
+    % for single trials prt
+    % we need single trial prt in order to perform signal trial decoding
+    % analysis and know the best achievable decoding performance.
+    prtSingleTrial.Condition{:}.ntpts=1; % for signal trial
+    prtSingleTrial.Condition{1}.name='DirLeft_FieldLeft_trial1'; %direction_field_trial1;
+    prtSingleTrial.Condition{2}.name='DirLeft_FieldLeft_trial2'; %direction_field_trial2;
+    prtSingleTrial.Condition{3}.name='DirLeft_FieldLeft_trial3'; %direction_field_trial3;
+    prtSingleTrial.Condition{4}.name='DirLeft_FieldLeft_trial4'; %direction_field_trial4;
+    prtSingleTrial.Condition{5}.name='DirLeft_FieldRight_trial1'; %direction_field_trial1;
+    prtSingleTrial.Condition{6}.name='DirLeft_FieldRight_trial2'; %direction_field_trial2;
+    prtSingleTrial.Condition{7}.name='DirLeft_FieldRight_trial3'; %direction_field_trial3;
+    prtSingleTrial.Condition{8}.name='DirLeft_FieldRight_trial4'; %direction_field_trial4;
+    prtSingleTrial.Condition{9}.name='DirRight_FieldLeft_trial1'; %direction_field_trial1;
+    prtSingleTrial.Condition{10}.name='DirRight_FieldLeft_trial2'; %direction_field_trial2;
+    prtSingleTrial.Condition{11}.name='DirRight_FieldLeft_trial3'; %direction_field_trial3;
+    prtSingleTrial.Condition{12}.name='DirRight_FieldLeft_trial4'; %direction_field_trial4;
+    prtSingleTrial.Condition{13}.name='DirRight_FieldRight_trial1'; %direction_field_trial1;
+    prtSingleTrial.Condition{14}.name='DirRight_FieldRight_trial2'; %direction_field_trial2;
+    prtSingleTrial.Condition{15}.name='DirRight_FieldRight_trial3'; %direction_field_trial3;
+    prtSingleTrial.Condition{16}.name='DirRight_FieldRight_trial4'; %direction_field_trial4
+
+
+    
+    %compute prt for three conditions (left/right/blank);
+    for i =1:prt.NrOfConditions
+        prt.Condition{i}.ntpts = 8;% 8 trials/condition
+        prt.Condition{i}.estart = prt.data(prt.data(:,3)==i,4);
+        prt.Condition{i}.eend = prt.data(prt.data(:,3)==i,5);
+        prt.Condition{i}.color=prt.colors(i,:);
     end
+    %add gaze condition
+    if ~DEBUG && Params.General.EyeTrack
+        prt.NrOfConditions=prt.NrOfConditions+1;
+        prt.Condition{prt.NrOfConditions}.name = 'gaze';
+        prt.Condition{prt.NrOfConditions}.ntpts = size(gaze_failed,1);
+        if prt.Condition{prt.NrOfConditions}.ntpts==0
+            prt.Condition{prt.NrOfConditions}.estart = 0;
+            prt.Condition{prt.NrOfConditions}.eend = 0;
+        else
+            prt.Condition{prt.NrOfConditions}.estart = gaze_failed(:,1);
+            prt.Condition{prt.NrOfConditions}.eend = gaze_failed(:,2);
+        end
+        prt.Condition{prt.NrOfConditions}.color=prt.colors(end,:);
+    end
+    bv_prt_write (prt);
+
+    %compute prt for all individual trials
+    for i = 1: prtSingleTrial.NrOfConditions
+        prtSingleTrial.Condition{i}.ntpts=1; % for signal trial
+        prtSingleTrial.Condition{i}.color=prtSingleTrial.colors(i,:);
+        condition_temp=fix((i-1)/4)+1;
+        rem_temp = rem(i-1,4)+1;
+        estart_temp = prt.data(prt.data(:,3)==condition_temp,4);
+        eend_temp   = prt.data(prt.data(:,3)==condition_temp,5);
+        prtSingleTrial.Condition{i}.estart =estart_temp(rem_temp);
+        prtSingleTrial.Condition{i}.eend = eend_temp(rem_temp);
+
+    end
+    prtSingleTrial.data=prt.data;
+    if ~DEBUG && Params.General.EyeTrack
+        %add gaze condition
+        prtSingleTrial.NrOfConditions=prtSingleTrial.NrOfConditions+1;
+        prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.name = 'gaze';
+        prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.ntpts = size(gaze_failed,1);
+        if prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.ntpts == 0
+              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.estart = 0;
+              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.eend = 0;
+        else
+              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.estart = gaze_failed(:,1);
+              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.eend = gaze_failed(:,2); 
+        end
+        prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.color=prtSingleTrial.colors(end,:);
+    end
+    bv_prt_write (prtSingleTrial);
+    save(filename);
 
 catch
     ListenChar(1);
