@@ -1,9 +1,9 @@
 
-function motionTexture(subj_number, run_number)
+function motionTexture_twoStim(subj_number, run_number)
 % function for direction identification of moving texture
-% this function only present one moving stimuli in either the blind field
+% this function present two moving stimuli in both the blind field
 % or the good field
-%e.g motionTexture(1,5); %subject 1 and run 5;
+%e.g motionTexture_twoStim(1,5); %subject 1 and run 5;
 
 %check inputs
 if ~exist('subj_number','var')||isempty('subj_number')
@@ -31,7 +31,7 @@ Params.General.SFRange                 = [0 1];   %cycles/deg, cut for spatial f
 
 
 %% ---------All parameters should be here---------------
-% KEY Monitor Parameters
+% KEY Monitor Parameters, you might also want to change this
 Params.General.View_Distance           = 119;          %cm
 Params.General.Resolution              = [1400 1050]; %width, height
 Params.General.MonitorWidth            = 42.8;        %cm
@@ -41,7 +41,7 @@ Params.General.Scale_factor            = Params.General.MonitorWidth*60/(Params.
 
 
 % experiment parameters
-Params.General.Experiment              ='TextureMotion';
+Params.General.Experiment              ='TextureMotion_twoStim';
 Params.General.Sub                     = subj_number;
 Params.General.Run                     = run_number;  %
 Params.General.N_run                   = 1;  % how many runs in this program
@@ -78,12 +78,10 @@ filename = strcat([Params.General.Experiment '_Sub' int2str(Params.General.Sub) 
 %% -----info on prt file;
 %prt for four conditions
 prt.name = [Params.General.Experiment '_Sub' int2str(Params.General.Sub) '_Run' int2str(Params.General.Run) '.prt'];
-prt.NrOfConditions = Params.General.N_direction * Params.General.N_location;
-prt.Condition{:}.ntpts=Params.General.Trials_condition;
-prt.Condition{1}.name='DirLeft_FieldLeft'; %direction_field;
-prt.Condition{2}.name='DirLeft_FieldRight'; %direction_field;
-prt.Condition{3}.name='DirRight_FieldLeft'; %direction_field;
-prt.Condition{4}.name='DirRight_FieldRight'; %direction_field;
+prt.NrOfConditions = Params.General.N_direction;
+prt.Condition{:}.ntpts=Params.General.Trials_condition * Params.General.N_location;
+prt.Condition{1}.name='DirLeft'; %direction_field;
+prt.Condition{2}.name='DirRight'; %direction_field;
 % generate the colors (jet is a 64x3 color table blue-green-yellow-red):
 colors = 255*jet; close(gcf);
 prt.colors = round(linspace(1,length(colors),prt.NrOfConditions+1));%%one more color for eyeTracking data
@@ -94,22 +92,22 @@ prt.colors = round(colors(prt.colors,:));
 prtSingleTrial.name = [Params.General.Experiment '_Sub' int2str(Params.General.Sub) '_Run' int2str(Params.General.Run) '_SingleTrial.prt'];
 prtSingleTrial.NrOfConditions = Params.General.N_direction * Params.General.N_location * Params.General.Trials_condition;
 prtSingleTrial.Condition{:}.ntpts=1; % for signal trial
-prtSingleTrial.Condition{1}.name='DirLeft_FieldLeft_trial1'; %direction_field_trial1;
-prtSingleTrial.Condition{2}.name='DirLeft_FieldLeft_trial2'; %direction_field_trial2;
-prtSingleTrial.Condition{3}.name='DirLeft_FieldLeft_trial3'; %direction_field_trial3;
-prtSingleTrial.Condition{4}.name='DirLeft_FieldLeft_trial4'; %direction_field_trial4;
-prtSingleTrial.Condition{5}.name='DirLeft_FieldRight_trial1'; %direction_field_trial1;
-prtSingleTrial.Condition{6}.name='DirLeft_FieldRight_trial2'; %direction_field_trial2;
-prtSingleTrial.Condition{7}.name='DirLeft_FieldRight_trial3'; %direction_field_trial3;
-prtSingleTrial.Condition{8}.name='DirLeft_FieldRight_trial4'; %direction_field_trial4;
-prtSingleTrial.Condition{9}.name='DirRight_FieldLeft_trial1'; %direction_field_trial1;
-prtSingleTrial.Condition{10}.name='DirRight_FieldLeft_trial2'; %direction_field_trial2;
-prtSingleTrial.Condition{11}.name='DirRight_FieldLeft_trial3'; %direction_field_trial3;
-prtSingleTrial.Condition{12}.name='DirRight_FieldLeft_trial4'; %direction_field_trial4;
-prtSingleTrial.Condition{13}.name='DirRight_FieldRight_trial1'; %direction_field_trial1;
-prtSingleTrial.Condition{14}.name='DirRight_FieldRight_trial2'; %direction_field_trial2;
-prtSingleTrial.Condition{15}.name='DirRight_FieldRight_trial3'; %direction_field_trial3;
-prtSingleTrial.Condition{16}.name='DirRight_FieldRight_trial4'; %direction_field_trial4;
+prtSingleTrial.Condition{1}.name='DirLeft_trial1'; %direction_field_trial1;
+prtSingleTrial.Condition{2}.name='DirLeft_trial2'; %direction_field_trial2;
+prtSingleTrial.Condition{3}.name='DirLeft_trial3'; %direction_field_trial3;
+prtSingleTrial.Condition{4}.name='DirLeft_trial4'; %direction_field_trial4;
+prtSingleTrial.Condition{5}.name='DirLeft_trial5'; %direction_field_trial1;
+prtSingleTrial.Condition{6}.name='DirLeft_trial6'; %direction_field_trial2;
+prtSingleTrial.Condition{7}.name='DirLeft_trial7'; %direction_field_trial3;
+prtSingleTrial.Condition{8}.name='DirLeft_trial8'; %direction_field_trial4;
+prtSingleTrial.Condition{9}.name='DirRight_trial1'; %direction_field_trial1;
+prtSingleTrial.Condition{10}.name='DirRight_trial2'; %direction_field_trial2;
+prtSingleTrial.Condition{11}.name='DirRight_trial3'; %direction_field_trial3;
+prtSingleTrial.Condition{12}.name='DirRight_trial4'; %direction_field_trial4;
+prtSingleTrial.Condition{13}.name='DirRight_trial5'; %direction_field_trial1;
+prtSingleTrial.Condition{14}.name='DirRight_trial6'; %direction_field_trial2;
+prtSingleTrial.Condition{15}.name='DirRight_trial7'; %direction_field_trial3;
+prtSingleTrial.Condition{16}.name='DirRight_trial8'; %direction_field_trial4;
 
 % generate the colors (jet is a 64x3 color table blue-green-yellow-red):
 colors = 255*jet; close(gcf);
@@ -123,7 +121,8 @@ prtSingleTrial.colors = round(colors(prtSingleTrial.colors,:));
 %to do randomize trial order in each run
 trials_run       = Params.General.Trials_condition * Params.General.N_direction * Params.General.N_location;%how many trials/run.
 direction_list   = sort(rem(1:trials_run,Params.General.N_direction)+1);
-location_list    = rem(1:trials_run,Params.General.N_location)+1;
+location_list    = zeros(1,trials_run); % since we will present stimuli in two locations, just set locations all to 0;
+
 
 
 try
@@ -137,14 +136,10 @@ try
     Params.General.IFI=Screen('GetFlipInterval', w);
     Params.General.Frame_rate=1/Params.General.IFI;	% frames per second
     
-    
-    
     %Now I know frame_rate, do some simple computations
     Params.General.MvLength_stimuli       = round(Params.General.Frame_rate*Params.General.Dur_stimuli);
     Params.General.MvLength_blank         = round(Params.General.Frame_rate*Params.General.Dur_blank);
     Params.General.PixStep                = Params.General.Speed*60/(Params.General.Frame_rate * Params.General.Scale_factor);        %moving speed, how many pixel/frame
-    
-    
     
     %housekeeping stuff
     stimulus_radius  = round(60* Params.General.Env_radius/Params.General.Scale_factor);%how many pixels for stimuli radius
@@ -334,7 +329,7 @@ try
         
         Screen('FillRect',w, Params.General.Background);
         Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-        vbl=Screen('Flip', w,vbl+Params.General.Dur_blank - 1);% 
+        vbl=Screen('Flip', w,vbl+Params.General.Dur_blank - 1);% give some room for next computation.
         prt.data = zeros(trials_run,5); %direction, location, condition, start time, end time
         trialEndTime = 0;  %set a default value 
         for trial=1:trials_run
@@ -351,14 +346,11 @@ try
             end
             prt.data(trial,1)=temp_data(trial,1); %save direction
             
-            switch temp_data(trial,2)
-                case 1 % left
-                   screen_patch=screen_rect_middle+[-Params.General.H_ecc_stim Params.General.V_ecc_stim -Params.General.H_ecc_stim Params.General.V_ecc_stim];
-                case 2 % right               
-                   screen_patch=screen_rect_middle+[Params.General.H_ecc_stim Params.General.V_ecc_stim Params.General.H_ecc_stim Params.General.V_ecc_stim];
-            end
+            screen_patch_left=screen_rect_middle+[-Params.General.H_ecc_stim Params.General.V_ecc_stim -Params.General.H_ecc_stim Params.General.V_ecc_stim];
+            screen_patch_right=screen_rect_middle+[Params.General.H_ecc_stim Params.General.V_ecc_stim Params.General.H_ecc_stim Params.General.V_ecc_stim];
+
             prt.data(trial,2)= temp_data(trial,2);%save location
-            prt.data(trial,3)= (temp_data(trial,1)-1)*Params.General.N_location+temp_data(trial,2);%save condition (1-4);
+            prt.data(trial,3)= temp_data(trial,1);%save condition (1,left;2,right;
             
             % play the animation of foveal
             Screen('FillRect',w, Params.General.Background);
@@ -379,7 +371,6 @@ try
             priorityLevel=MaxPriority(w);Priority(priorityLevel);
             %testblank = GetSecs-trialEndTime
             trialStartTime = GetSecs;
-            prt.data(trial,4) = (GetSecs-startTime)*1000;%starting time;
             for frame = 1:Params.General.MvLength_stimuli
                 
                 offset=(frame-1)*Params.General.PixStep;  %how many pixel moved in this frame
@@ -388,11 +379,19 @@ try
                 %offset
                 srcrect=[offset 0 bps+offset bps];
                 
-                
+                % present in left
                 %Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                Screen('DrawTexture',w,bigPatch,srcrect,screen_patch,rotation_angle);
+                Screen('DrawTexture',w,bigPatch,srcrect,screen_patch_left,rotation_angle);
                 Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                Screen('DrawTexture',w,maskCOS,movie_rect,screen_patch,[],[]);
+                Screen('DrawTexture',w,maskCOS,movie_rect,screen_patch_left,[],[]);
+                
+                
+                % present stimuli in right
+                %Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                Screen('DrawTexture',w,bigPatch,srcrect,screen_patch_right,rotation_angle);
+                Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                Screen('DrawTexture',w,maskCOS,movie_rect,screen_patch_right,[],[]);
+                
                 
                 Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
                 if frame == 1
@@ -405,12 +404,12 @@ try
                 if ~debug && Params.General.EyeTrack
                    eval(check_eyes);
                 end
-            end
-                
+            end    
              
             %test timing
             trialEndTime= GetSecs;
-            
+            %preDelay = trialStartTime-t1;
+
             prt.data(trial,4) = (vbl-startTime)*1000;%starting time 
             prt.data(trial,5)=(trialEndTime-startTime)*1000;%end time;
             
@@ -471,7 +470,7 @@ try
         save(filename);
         %compute prt for four conditions
         for i =1:prt.NrOfConditions
-            prt.Condition{i}.ntpts = 4;% 4 trials/condition
+            prt.Condition{i}.ntpts = 8;% 4 trials/condition
             prt.Condition{i}.estart = prt.data(prt.data(:,3)==i,4);
             prt.Condition{i}.eend = prt.data(prt.data(:,3)==i,5);
             prt.Condition{i}.color=prt.colors(i,:);
@@ -496,8 +495,8 @@ try
         for i = 1: prtSingleTrial.NrOfConditions
             prtSingleTrial.Condition{i}.ntpts=1; % for signal trial
             prtSingleTrial.Condition{i}.color=prtSingleTrial.colors(i,:);
-            condition_temp=fix((i-1)/4)+1;
-            rem_temp = rem(i-1,4)+1;
+            condition_temp=fix((i-1)/8)+1;
+            rem_temp = rem(i-1,8)+1;
             estart_temp = prt.data(prt.data(:,3)==condition_temp,4);
             eend_temp   = prt.data(prt.data(:,3)==condition_temp,5);
             prtSingleTrial.Condition{i}.estart =estart_temp(rem_temp);
