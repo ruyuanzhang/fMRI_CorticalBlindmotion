@@ -320,9 +320,11 @@ try
             
             switch temp_data(trial,2)
                 case 1 % left
-                    screen_patch=screen_rect_middle+[-Params.General.H_ecc_stim Params.General.V_ecc_stim -Params.General.H_ecc_stim Params.General.V_ecc_stim];
+                   screen_patch_blind=screen_rect_middle+[-Params.General.H_ecc_stim Params.General.V_ecc_stim -Params.General.H_ecc_stim Params.General.V_ecc_stim];
+                   screen_patch_intact=screen_rect_middle+[Params.General.H_ecc_stim Params.General.V_ecc_stim -Params.General.H_ecc_stim Params.General.V_ecc_stim];
                 case 2 % right
-                    screen_patch=screen_rect_middle+[Params.General.H_ecc_stim Params.General.V_ecc_stim Params.General.H_ecc_stim Params.General.V_ecc_stim];
+                   screen_patch_blind=screen_rect_middle+[Params.General.H_ecc_stim Params.General.V_ecc_stim Params.General.H_ecc_stim Params.General.V_ecc_stim];
+                   screen_patch_intact=screen_rect_middle+[-Params.General.H_ecc_stim Params.General.V_ecc_stim -Params.General.H_ecc_stim Params.General.V_ecc_stim];
             end
             prt.data(trial,2)= temp_data(trial,2);%save location
             prt.data(trial,3)= (temp_data(trial,1)-1)*Params.General.N_location+temp_data(trial,2);%save condition (1-8);
@@ -390,10 +392,16 @@ try
                 %offset
                 srcrect=[offset 0 bps+offset bps];
                 
+                %present stimuli in blind field
                 %Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                Screen('DrawTexture',w,bigPatch,srcrect,screen_patch,rotation_angle);
+                Screen('DrawTexture',w,bigPatch,srcrect,screen_patch_blind,rotation_angle);
                 Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                Screen('DrawTexture',w,maskCOS,movie_rect,screen_patch,[],[]);
+                Screen('DrawTexture',w,maskCOS,movie_rect,screen_patch_blind,[],[]);
+                %present stimuli in intact field
+                Screen('DrawTexture',w,bigPatch,srcrect,screen_patch_intact,rotation_angle);
+                Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                Screen('DrawTexture',w,maskCOS,movie_rect,screen_patch_intact,[],[]);
+                
                 Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
                 vbl=Screen('Flip',w);
                                                 
