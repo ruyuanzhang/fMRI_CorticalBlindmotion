@@ -25,10 +25,13 @@ Params.General.Experiment               = 'Motion_Localizer_Texture'; % name of 
 
 
 % KEY Monitor Parameters
+Params.General.View_Distance           = 119;          %cm
 Params.General.Resolution              = [1400 1050]; %width, height
 Params.General.MonitorWidth            = 42.8;        %cm
 Params.General.Linearize 	           = 1;           %whether monitor is linearized. if=1, program will look for "MyGammaTable"
-Params.General.Scale_factor             = 2 ; % scale factors
+Params.General.Break_if_mismatch       = 1;       % if 1, this will quit the program if monitor resolution does not match above settings (use 1 for the ACTUAL EXP, 0 for testing on a different monitor, eg laptop)
+Params.General.Scale_factor            = Params.General.MonitorWidth*60/(Params.General.Resolution(1)*Params.General.View_Distance *tand(1));     % most important parameter - how many acrmin is one screen pixel?
+
 
 % experiment parameters
 Params.General.N_run                   = 1;  % how many runs in this program
@@ -49,7 +52,48 @@ Params.General.Amplitude               = 127;
 Params.General.H_ecc_stim              = round(Params.General.Stimuli_ecc(1)*60/Params.General.Scale_factor);
 Params.General.V_ecc_stim              = round(Params.General.Stimuli_ecc(2)*60/Params.General.Scale_factor);
 
-direction_list                          =  rem(2:Params.General.nTrials+1,2);   %directions, 0,left,1,right;
+direction_list                          =  rem(2:Params.General.nTrials+1,2)+1;   %directions, 0,left,1,right;
+
+
+%% -----info on prt file;
+%prt for four conditions
+prt.name = [Params.General.Experiment '.prt'];
+prt.NrOfConditions = 2; %two direction
+prt.Condition{:}.ntpts=8;
+prt.Condition{1}.name='DirLeft'; %left;
+prt.Condition{2}.name='DirRight'; %right;
+% generate the colors (jet is a 64x3 color table blue-green-yellow-red):
+colors = 255*jet; close(gcf);
+prt.colors = round(linspace(1,length(colors),prt.NrOfConditions));
+prt.colors = round(colors(prt.colors,:));
+
+% for single trials prt
+% we need single trial prt in order to perform signal trial decoding
+% analysis and know the best achievable decoding performance.
+prtSingleTrial.name = [Params.General.Experiment '_SingleTrial.prt'];
+prtSingleTrial.NrOfConditions = 16;
+prtSingleTrial.Condition{:}.ntpts=1; % for signal trial
+prtSingleTrial.Condition{1}.name='DirLeft_trial1'; %direction_field_trial1;
+prtSingleTrial.Condition{2}.name='DirLeft_trial2'; %direction_field_trial2;
+prtSingleTrial.Condition{3}.name='DirLeft_trial3'; %direction_field_trial3;
+prtSingleTrial.Condition{4}.name='DirLeft_trial4'; %direction_field_trial4;
+prtSingleTrial.Condition{5}.name='DirLeft_trial5'; %direction_field_trial1;
+prtSingleTrial.Condition{6}.name='DirLeft_trial6'; %direction_field_trial2;
+prtSingleTrial.Condition{7}.name='DirLeft_trial7'; %direction_field_trial3;
+prtSingleTrial.Condition{8}.name='DirLeft_trial8'; %direction_field_trial4;
+prtSingleTrial.Condition{9}.name='DirRight_trial1'; %direction_field_trial1;
+prtSingleTrial.Condition{10}.name='DirRight_trial2'; %direction_field_trial2;
+prtSingleTrial.Condition{11}.name='DirRight_trial3'; %direction_field_trial3;
+prtSingleTrial.Condition{12}.name='DirRight_trial4'; %direction_field_trial4;
+prtSingleTrial.Condition{13}.name='DirRight_trial5'; %direction_field_trial1;
+prtSingleTrial.Condition{14}.name='DirRight_trial6'; %direction_field_trial2;
+prtSingleTrial.Condition{15}.name='DirRight_trial7'; %direction_field_trial3;
+prtSingleTrial.Condition{16}.name='DirRight_trial8'; %direction_field_trial4
+% generate the colors (jet is a 64x3 color table blue-green-yellow-red):
+colors = 255*jet; close(gcf);
+prtSingleTrial.colors = round(linspace(1,length(colors),prtSingleTrial.NrOfConditions+1)); 
+prtSingleTrial.colors = round(colors(prtSingleTrial.colors,:));
+
 
 try
     %open Screen windows,
@@ -110,9 +154,7 @@ try
     scr_top = fix(screen_rect(4)/2)-round(bps/2);
     screen_rect = movie_rect + [scr_left_middle, scr_top, scr_left_middle, scr_top];
       
-    exit_index = 0;
-    
-    
+        
     %% premake the motion movie
     %------------------------make the movie----------------------------
     % make a wide image patch with dots.
@@ -139,10 +181,13 @@ try
     big_im = (big_im-min(big_im(:)))/(max(big_im(:))-min(abs(big_im(:)))); %normalize to (0,1) range
     big_im = Params.General.Amplitude + Params.General.Amplitude * (2*big_im-1);
     %big_im = im2uint8(big_im);
-
     bigPatch = Screen('MakeTexture', w, big_im); %make texture of big matrix
 
     
+    
+    % initiate a data matrix
+    prt.data = zeros(Params.General.nTrials,3);%direction, starttime, endtime.
+    prt.data(:,1) = direction_list';
     
     %% MAIN LOOP
     HideCursor;
@@ -175,7 +220,7 @@ try
     % first blank at begining
     Screen('FillRect',w, Params.General.Background);
     Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-    vbl_blank=Screen('Flip', w,vbl+Params.General.Dur_blank); % 0.6295 is estimated time for preDelay below
+    vbl=Screen('Flip', w,vbl+Params.General.Dur_blank-1); % 0.6295 is estimated time for preDelay below
     
     
     %% Main loop    
@@ -183,16 +228,22 @@ try
            
         %% play the movie to the left
         priorityLevel=MaxPriority(w);Priority(priorityLevel);
-        trialStartTime = GetSecs;
-        preDelay =  trialStartTime-vbl_blank
-        prt.data(trial,4) = (GetSecs-startTime)*1000;%starting time;
         
-        if trial ==1
-            fprintf('This blank lasts %.10f\n', GetSecs-vbl); 
-        else
-            fprintf('This blank lasts %.10f\n', GetSecs-trialEndTime); 
+        
+        % play the animation of foveal
+        Screen('FillRect',w, Params.General.Background);
+        Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
+        Screen('Flip', w);
+        mm = 31;
+        for i=0:4
+            nn = mm-i*4;
+            Screen('FrameOval', w,Params.General.Character_color,[sr_hor-nn, sr_ver-nn, sr_hor+nn, sr_ver+nn],2,2)
+            Screen('Flip', w);
+            WaitSecs(0.05);
         end
-   
+        Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
+        Screen('Flip', w);
+        WaitSecs(0.2);
         
         for frame = 1:Params.General.MvLength_stimuli
             offset=(frame-1)*Params.General.PixStep;  %how many pixel moved in this frame
@@ -202,22 +253,29 @@ try
             srcrect=[offset 0 bps+offset bps];
 
             %Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            Screen('DrawTexture',w,bigPatch,srcrect,screen_rect,direction_list(trial)*180);
+            Screen('DrawTexture',w,bigPatch,srcrect,screen_rect,(direction_list(trial)-1)*180);
             Screen('BlendFunction', w, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             Screen('DrawTexture',w,maskCOS,movie_rect,screen_rect,[],[]);
             Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
-            vbl=Screen('Flip',w);                               
+            
+            
+            if frame == 1
+                vbl=Screen('Flip',w,startTime+(trial-1)*16+8);%control the timing for first frame
+                fprintf('Stimulus onset time is %.10f ms\n',(vbl-startTime)*1000);
+            else
+                Screen('Flip',w);
+            end
         end
 
         %% 
         trialEndTime = GetSecs;
-
-        prt.data(trial,5)=(trialEndTime-startTime)*1000;%end time;
         
-        fprintf('This trial lasts %.10f seconds \n',trialEndTime - trialStartTime);
+        
+        prt.data(trial,2) = (vbl-startTime)*1000;%starting time;
+        prt.data(trial,3)=(trialEndTime-startTime)*1000;%end time;
+       
+        trial
 
-            trial
-%            t = (prt.data(trial,4) -  prt.data(trial-1,5))/1000 
 
 
         % blank after left motion    
@@ -227,7 +285,12 @@ try
         Priority(0);
         Screen('FillRect',w, Params.General.Background);
         Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);        
-        vbl_blank=Screen('Flip', w, trialEndTime+Params.General.Dur_blank-preDelay); % give some room for preDelay below
+        if trial == Params.General.nTrials
+            Screen('Flip', w, blankStartTime+Params.General.Dur_blank); 
+        else
+            Screen('Flip', w, blankStartTime+Params.General.Dur_blank-1);% give some room for preDelay below
+        end
+        
 
         FlushEvents('keyDown');
         % Close movies
@@ -245,66 +308,20 @@ try
     Screen('Preference', 'VisualDebugLevel', oldVisualDebugLevel);
     Screen('Preference', 'SuppressAllWarnings', oldSupressAllWarnings);
     ListenChar(1);
-       
-    save(filename);
     
-    %% set up prt
-    % some info for prt file
-    % for motion localizer prt. We use this to define motion selective
-    % voxels
-    prt.name = [Params.General.Experiment '_localizerPRT'];
-    prt.NrofCodnitions                      = 2;%left/right/blank;
-    prt.Condition{:}.ntpts                  = 8;
-    prt.Condition{1}.name                   ='Left';
-    prt.Condition{2}.name                   ='Right';
-    colors = 255*jet;close(gcf);
-    prt.colors = round(linspace(1,length(colors),prt.NrOfConditions));
-    prt.colors = round(colors(prt.colors,:));
-    
-    
-    % for single trials prt
-    % we need single trial prt in order to perform signal trial decoding
-    % analysis and know the best achievable decoding performance.
-    prtSingleTrial.Condition{:}.ntpts=1; % for signal trial
-    prtSingleTrial.Condition{1}.name='DirLeft_FieldLeft_trial1'; %direction_field_trial1;
-    prtSingleTrial.Condition{2}.name='DirLeft_FieldLeft_trial2'; %direction_field_trial2;
-    prtSingleTrial.Condition{3}.name='DirLeft_FieldLeft_trial3'; %direction_field_trial3;
-    prtSingleTrial.Condition{4}.name='DirLeft_FieldLeft_trial4'; %direction_field_trial4;
-    prtSingleTrial.Condition{5}.name='DirLeft_FieldRight_trial1'; %direction_field_trial1;
-    prtSingleTrial.Condition{6}.name='DirLeft_FieldRight_trial2'; %direction_field_trial2;
-    prtSingleTrial.Condition{7}.name='DirLeft_FieldRight_trial3'; %direction_field_trial3;
-    prtSingleTrial.Condition{8}.name='DirLeft_FieldRight_trial4'; %direction_field_trial4;
-    prtSingleTrial.Condition{9}.name='DirRight_FieldLeft_trial1'; %direction_field_trial1;
-    prtSingleTrial.Condition{10}.name='DirRight_FieldLeft_trial2'; %direction_field_trial2;
-    prtSingleTrial.Condition{11}.name='DirRight_FieldLeft_trial3'; %direction_field_trial3;
-    prtSingleTrial.Condition{12}.name='DirRight_FieldLeft_trial4'; %direction_field_trial4;
-    prtSingleTrial.Condition{13}.name='DirRight_FieldRight_trial1'; %direction_field_trial1;
-    prtSingleTrial.Condition{14}.name='DirRight_FieldRight_trial2'; %direction_field_trial2;
-    prtSingleTrial.Condition{15}.name='DirRight_FieldRight_trial3'; %direction_field_trial3;
-    prtSingleTrial.Condition{16}.name='DirRight_FieldRight_trial4'; %direction_field_trial4
+    %filename = [Params.General.Experiment '_localizerPRT.prt']; 
+    %save(filename)
+     
+  
 
 
     
-    %compute prt for three conditions (left/right/blank);
+    %compute prt for two conditions (left/right/blank);
     for i =1:prt.NrOfConditions
         prt.Condition{i}.ntpts = 8;% 8 trials/condition
-        prt.Condition{i}.estart = prt.data(prt.data(:,3)==i,4);
-        prt.Condition{i}.eend = prt.data(prt.data(:,3)==i,5);
+        prt.Condition{i}.estart = prt.data(prt.data(:,1)==i,2);
+        prt.Condition{i}.eend = prt.data(prt.data(:,1)==i,3);
         prt.Condition{i}.color=prt.colors(i,:);
-    end
-    %add gaze condition
-    if ~DEBUG && Params.General.EyeTrack
-        prt.NrOfConditions=prt.NrOfConditions+1;
-        prt.Condition{prt.NrOfConditions}.name = 'gaze';
-        prt.Condition{prt.NrOfConditions}.ntpts = size(gaze_failed,1);
-        if prt.Condition{prt.NrOfConditions}.ntpts==0
-            prt.Condition{prt.NrOfConditions}.estart = 0;
-            prt.Condition{prt.NrOfConditions}.eend = 0;
-        else
-            prt.Condition{prt.NrOfConditions}.estart = gaze_failed(:,1);
-            prt.Condition{prt.NrOfConditions}.eend = gaze_failed(:,2);
-        end
-        prt.Condition{prt.NrOfConditions}.color=prt.colors(end,:);
     end
     bv_prt_write (prt);
 
@@ -312,31 +329,17 @@ try
     for i = 1: prtSingleTrial.NrOfConditions
         prtSingleTrial.Condition{i}.ntpts=1; % for signal trial
         prtSingleTrial.Condition{i}.color=prtSingleTrial.colors(i,:);
-        condition_temp=fix((i-1)/4)+1;
-        rem_temp = rem(i-1,4)+1;
-        estart_temp = prt.data(prt.data(:,3)==condition_temp,4);
-        eend_temp   = prt.data(prt.data(:,3)==condition_temp,5);
+        condition_temp=fix((i-1)/8)+1;
+        rem_temp = rem(i-1,8)+1;
+        estart_temp = prt.data(prt.data(:,1)==condition_temp,2);
+        eend_temp   = prt.data(prt.data(:,1)==condition_temp,3);
         prtSingleTrial.Condition{i}.estart =estart_temp(rem_temp);
         prtSingleTrial.Condition{i}.eend = eend_temp(rem_temp);
 
     end
     prtSingleTrial.data=prt.data;
-    if ~DEBUG && Params.General.EyeTrack
-        %add gaze condition
-        prtSingleTrial.NrOfConditions=prtSingleTrial.NrOfConditions+1;
-        prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.name = 'gaze';
-        prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.ntpts = size(gaze_failed,1);
-        if prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.ntpts == 0
-              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.estart = 0;
-              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.eend = 0;
-        else
-              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.estart = gaze_failed(:,1);
-              prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.eend = gaze_failed(:,2); 
-        end
-        prtSingleTrial.Condition{prtSingleTrial.NrOfConditions}.color=prtSingleTrial.colors(end,:);
-    end
     bv_prt_write (prtSingleTrial);
-    save(filename);
+%    save(filename);
 
 catch
     ListenChar(1);

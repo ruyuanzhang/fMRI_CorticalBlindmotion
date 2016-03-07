@@ -329,9 +329,7 @@ try
         vbl=Screen('Flip', w); %end of the blank before this run
 
         
-        % check whether eyetrack is still running
-        %eyetrackCounter = 1;
-        
+       
         Screen('FillRect',w, Params.General.Background);
         Screen('FillOval', w,Params.General.Character_color,[sr_hor-15, sr_ver-15, sr_hor+15, sr_ver+15]);
         vbl=Screen('Flip', w,vbl+Params.General.Dur_blank - 1);% 
@@ -343,10 +341,8 @@ try
             %determine direction and retinal location of the stimulus in
             %this trial
             if temp_data(trial,1)==1 %left
-                direction = -1;
                 rotation_angle = 0;
             elseif temp_data(trial,1)==2 %right
-                direction = 1;
                 rotation_angle = 180;
             end
             prt.data(trial,1)=temp_data(trial,1); %save direction
